@@ -1,43 +1,37 @@
 import { fs as memfs, vol } from "memfs"
 import { run } from "./design"
 import { deps } from "./ioc"
-
-type System = Parameters<ReturnType<typeof run>>[0]
+import { system } from "./system"
 
 jest.mock("fs", () => memfs)
 jest.mock("fs/promises", () => memfs.promises)
 
+const root = "/project"
+
 const fileSystem: Record<string, string> = {
-  "/project/package.json": JSON.stringify({ name: "example" }),
+  [`${root}/package.json`]: JSON.stringify({ name: "example" }),
 }
 
-const packageLoader = {
-  isInterested: (path: string) => path.endsWith("package.json"),
-  parse: (content: string) => JSON.parse(content),
-}
-
-const loaders = { package: packageLoader }
-
-const system: System = {
-  loadConfig: jest.fn().mockResolvedValue({ loaders }),
-  stateLoader: jest.fn().mockReturnValue({
-    loadState: jest.fn().mockResolvedValue({
-      "/project/package.json": { package: { name: "example" } },
-    }),
-  }),
-  plan: jest.fn().mockResolvedValue([]),
-  apply: jest.fn().mockReturnValue(jest.fn().mockResolvedValue(void 0)),
-}
+const loadConfig = jest.spyOn(system, "loadConfig")
+const stateLoader = jest.spyOn(system, "stateLoader")
+const plan = jest.spyOn(system, "plan")
+const apply = jest.spyOn(system, "apply")
 
 beforeAll(() => {
-  vol.fromJSON(fileSystem, "/project")
+  vol.fromJSON(fileSystem, root)
+})
+
+beforeEach(() => {
+  jest.clearAllMocks()
 })
 
 test("run", async () => {
-  await run(deps)(system)("/project")
+  const main = run(deps, system)
 
-  expect(system.loadConfig).toHaveBeenCalled()
-  expect(system.stateLoader).toHaveBeenCalled()
-  expect(system.plan).toHaveBeenCalled()
-  expect(system.apply).toHaveBeenCalled()
+  await main(root)
+
+  expect(loadConfig).toHaveBeenCalled()
+  expect(stateLoader).toHaveBeenCalled()
+  expect(plan).toHaveBeenCalled()
+  expect(apply).toHaveBeenCalled()
 })

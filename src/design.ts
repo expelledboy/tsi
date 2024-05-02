@@ -24,7 +24,7 @@ export type StateLoader = (
   reloadFile: (path: string, state: State<Loaders>) => Promise<State<Loaders>>
 }
 
-type Op = (
+export type Op = (
   | { type: "add"; content: string }
   | { type: "update"; content: string }
   | { type: "remove" }
@@ -49,10 +49,14 @@ export type System = {
   apply: apply
 }
 
-export const run = (deps: Deps) => (system: System) => async (dir: string) => {
-  const config = await system.loadConfig()
-  const allFiles = await deps.listAllFiles(dir)
-  const state = await system.stateLoader(deps, config.loaders).loadState(allFiles)
-  const ops = await system.plan(state)
-  await system.apply(deps)(ops, state)
-}
+export const run =
+  (deps: Deps, system: System) =>
+  async (dir: string): Promise<void> => {
+    const config = await system.loadConfig()
+    const stateLoader = system.stateLoader(deps, config.loaders)
+    const allFiles = await deps.listAllFiles(dir)
+    const state = await stateLoader.loadState(allFiles)
+    const ops = await system.plan(state)
+    const apply = system.apply(deps)
+    await apply(ops, state)
+  }
