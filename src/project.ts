@@ -65,7 +65,7 @@ export const loadState =
 export const reloadFile =
   ({ file }: Features) =>
   ({ parsers }: Config): API["reloadFile"] =>
-  async (path: string, state: Schema<Parser>) => {
+  async (path, state) => {
     const parsed = await parse(file, parsers, path)
 
     return {
@@ -76,7 +76,7 @@ export const reloadFile =
 
 export const transform =
   ({ transforms }: Config): API["transform"] =>
-  (state: Schema<Parser>) =>
+  (state) =>
     transforms.reduce((acc, transform) => transform(acc), state)
 
 export const plan =

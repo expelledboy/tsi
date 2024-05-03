@@ -1,12 +1,5 @@
-import { Codec, Config } from "./design"
-
-const json: Codec<Object> = {
-  use: (path) => path.endsWith(".json"),
-  parse: (content) => JSON.parse(content),
-  serialize: (data) => JSON.stringify(data, null, 2),
-}
-
-export const parsers = { json }
+import { Config } from "./design"
+import { parsers } from "./parsers"
 
 export const config: Config<typeof parsers> = {
   cwd: process.cwd(),

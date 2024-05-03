@@ -1,6 +1,6 @@
 import { fs as memfs, vol } from "memfs"
 import { dump } from "./cmds"
-import { parsers } from "./config"
+import { parsers } from "./parsers"
 
 jest.mock("fs/promises", () => memfs.promises)
 
@@ -27,7 +27,7 @@ const state = JSON.stringify(
   Object.fromEntries(
     Object.entries(fileConfig).map(([path, content]) => [
       path,
-      { json: config[content] },
+      { nodePackage: config[content] },
     ]),
   ),
   null,
