@@ -1,62 +1,70 @@
-export type Loader<T extends object> = {
-  isInterested: (path: string) => boolean
-  parse: (content: string) => T
-}
+// Entry point for the project.
+export type TSI<T extends Config<Parser>> = (
+  provide: Features,
+) => (config: T) => Project<T["parsers"]>
 
-export type Loaders = {
-  [name: string]: Loader<any>
-}
-
-export type State<L extends Loaders> = {
-  [filename: string]: {
-    [K in keyof L]: ReturnType<L[K]["parse"]>
+// Features required to effect changes.
+export type Features = {
+  file: {
+    listAll: (path: string) => Promise<string[]>
+    read: (path: string) => Promise<string>
+    write: (path: string, content: string) => Promise<void>
+    delete: (path: string) => Promise<void>
+  }
+  repo: {
+    ignoreFile: (path: string) => Promise<void>
   }
 }
 
-export type StateLoader = (
-  deps: {
-    listAllFiles: (path: string) => Promise<string[]>
-    readFile: (path: string) => Promise<string>
-  },
-  loaders: Loaders,
-) => {
-  loadState: (files: string[]) => Promise<State<Loaders>>
-  reloadFile: (path: string, state: State<Loaders>) => Promise<State<Loaders>>
+// Runtime configuration for a project.
+export type Config<T extends Parser> = {
+  cwd: string
+  parsers: T
+  transforms: Transform<T>[]
 }
 
-export type Op = (
-  | { type: "add"; content: string }
-  | { type: "update"; content: string }
+// Abstracts away file encoding and decoding.
+export type Codec<T extends Object> = {
+  use: (path: string) => boolean
+  parse: (content: string) => T
+  serialize: (data: T) => string
+}
+
+// Collection of codecs for different file types.
+export type Parser = {
+  [name: string]: Codec<any>
+}
+
+// State of a single file translated using codecs.
+export type Schema<T extends Parser> = {
+  [K in keyof T]?: ReturnType<T[K]["parse"]>
+}
+
+// State of project translated using codecs.
+export type Files<T extends Parser> = {
+  [filename: string]: Schema<T>
+}
+
+// Transform project state using plugins.
+export type Transform<T extends Parser> = (s: Files<T>) => Files<T>
+
+// Project API
+// - load current state
+// - reload file, apply state changes
+// - transform state using plugins
+// - plan file changes
+// - apply file operations
+export type Project<T extends Parser> = {
+  loadState: () => Promise<Files<T>>
+  reloadFile: (path: string, state: Files<T>) => Promise<Files<T>>
+  transform: (state: Files<T>) => Files<T>
+  plan: (state: Files<T>, desiredState: Files<T>) => Promise<FileOp[]>
+  apply: (ops: FileOp[]) => Promise<void>
+}
+
+// Instructions to change a file.
+export type FileOp = (
+  | { type: "write"; content: string }
   | { type: "remove" }
   | { type: "ignore" }
 ) & { path: string }
-
-export type plan = <L extends Loaders>(state: State<L>) => Promise<Op[]>
-
-export type apply = (deps: {
-  createFile: (path: string, content: string) => Promise<void>
-  updateFile: (path: string, content: string) => Promise<void>
-  deleteFile: (path: string) => Promise<void>
-  ignoreFile: (path: string) => Promise<void>
-}) => <L extends Loaders>(ops: Op[], state: State<L>) => Promise<void>
-
-export type Deps = Parameters<StateLoader>[0] & Parameters<apply>[0]
-
-export type System = {
-  loadConfig: () => Promise<{ loaders: Loaders }>
-  stateLoader: StateLoader
-  plan: plan
-  apply: apply
-}
-
-export const run =
-  (deps: Deps, system: System) =>
-  async (dir: string): Promise<void> => {
-    const config = await system.loadConfig()
-    const stateLoader = system.stateLoader(deps, config.loaders)
-    const allFiles = await deps.listAllFiles(dir)
-    const state = await stateLoader.loadState(allFiles)
-    const ops = await system.plan(state)
-    const apply = system.apply(deps)
-    await apply(ops, state)
-  }
