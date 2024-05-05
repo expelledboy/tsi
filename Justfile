@@ -1,6 +1,9 @@
 test:
 	pnpm jest
 
+test-reset:
+	pnpm jest --clearCache
+
 format:
 	pnpm prettier --write .
 

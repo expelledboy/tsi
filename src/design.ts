@@ -1,5 +1,5 @@
-// Entry point for the project.
-export type TSI<T extends Config<Parser>> = (
+// The constraints placed on the design of the project.
+export type Engine<T extends Config<Parser> = Config<Parser>> = (
   provide: Features,
 ) => (config: T) => Project<T["parsers"]>
 
@@ -17,7 +17,7 @@ export type Features = {
 }
 
 // Runtime configuration for a project.
-export type Config<T extends Parser> = {
+export type Config<T extends Parser = Parser> = {
   cwd: string
   parsers: T
   transforms: Transform<T>[]
@@ -36,17 +36,17 @@ export type Parser = {
 }
 
 // State of a single file translated using codecs.
-export type Schema<T extends Parser> = {
+export type Schema<T extends Parser = Parser> = {
   [K in keyof T]?: ReturnType<T[K]["parse"]>
 }
 
 // State of project translated using codecs.
-export type Files<T extends Parser> = {
+export type Files<T extends Parser = Parser> = {
   [filename: string]: Schema<T>
 }
 
 // Transform project state using plugins.
-export type Transform<T extends Parser> = (s: Files<T>) => Files<T>
+export type Transform<T extends Parser = Parser> = (s: Files<T>) => Files<T>
 
 // Project API
 // - load current state
@@ -54,7 +54,7 @@ export type Transform<T extends Parser> = (s: Files<T>) => Files<T>
 // - transform state using plugins
 // - plan file changes
 // - apply file operations
-export type Project<T extends Parser> = {
+export type Project<T extends Parser = Parser> = {
   loadState: () => Promise<Files<T>>
   reloadFile: (path: string, state: Files<T>) => Promise<Files<T>>
   transform: (state: Files<T>) => Files<T>

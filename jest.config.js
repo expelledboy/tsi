@@ -4,4 +4,7 @@ module.exports = {
   testEnvironment: "node",
   detectOpenHandles: true,
   verbose: true,
+  moduleNameMapper: {
+    "^~/(.*)$": "<rootDir>/src/$1",
+  },
 }

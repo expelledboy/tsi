@@ -1,19 +1,25 @@
-import { dump } from "./cmds"
-import { config } from "./config"
+import { dump, apply } from "./cmds"
+
+const help = async () => console.log("Usage: tsi <dump|apply>")
+
+const unknown = async () => console.error("Unknown command")
 
 const parseArgs = (): (() => Promise<void>) => {
-  const cmd = process.argv[2]
-
-  switch (cmd) {
+  switch (process.argv[2]) {
     case "dump":
-      return () => dump(config)
+      return dump
+    case "apply":
+      return apply
+    case "help":
+      return help
     default:
-      return async () => console.log("Unknown command")
+      return unknown
   }
 }
 
 async function main() {
   const cmd = parseArgs()
+
   await cmd()
 }
 
