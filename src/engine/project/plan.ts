@@ -1,9 +1,19 @@
-import { Config, Parser, Project, Schema } from "~/design"
+import { Config, Operation, Parser, Project, Schema } from "~/design"
 import { onlyKeyInObject } from "~/utils"
 
 export const plan =
   ({ cwd, parsers }: Config): Project["plan"] =>
   async (state, desiredState) => {
+    const ops: Operation[] = []
+
+    const isGitRepo = state[".git/HEAD"] !== undefined
+
+    if (!isGitRepo) {
+      ops.push({
+        type: "gitInit" as const,
+      })
+    }
+
     const fullPath = (path: string) => `${cwd}/${path}`
 
     const create = Object.entries(desiredState)
@@ -34,7 +44,9 @@ export const plan =
       path,
     }))
 
-    return [...create, ...remove, ...update, ...ignore]
+    ops.push(...create, ...remove, ...update, ...ignore)
+
+    return ops
   }
 
 const serialize: (schema: Schema<Parser>, parsers: Parser) => string = (

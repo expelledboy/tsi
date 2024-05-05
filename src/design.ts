@@ -11,8 +11,12 @@ export type Features = {
     write: (path: string, content: string) => Promise<void>
     delete: (path: string) => Promise<void>
   }
-  repo: {
-    ignoreFile: (path: string) => Promise<void>
+  dir: {
+    exists: (path: string) => Promise<boolean>
+  }
+  git: {
+    init: () => Promise<void>
+    ignore: (path: string) => Promise<void>
   }
 }
 
@@ -58,13 +62,13 @@ export type Project<T extends Parser = Parser> = {
   loadState: () => Promise<Files<T>>
   reloadFile: (path: string, state: Files<T>) => Promise<Files<T>>
   transform: (state: Files<T>) => Files<T>
-  plan: (state: Files<T>, desiredState: Files<T>) => Promise<FileOp[]>
-  apply: (ops: FileOp[]) => Promise<void>
+  plan: (state: Files<T>, desiredState: Files<T>) => Promise<Operation[]>
+  apply: (ops: Operation[]) => Promise<void>
 }
 
-// Instructions to change a file.
-export type FileOp = (
-  | { type: "write"; content: string }
-  | { type: "remove" }
-  | { type: "ignore" }
-) & { path: string }
+// Instructions to effect changes on the file system.
+export type Operation =
+  | { type: "write"; path: string; content: string }
+  | { type: "remove"; path: string }
+  | { type: "ignore"; path: string }
+  | { type: "gitInit" }

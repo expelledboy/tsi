@@ -1,4 +1,5 @@
 import { dump, apply } from "./cmds"
+import { requireBins } from "./ioc"
 
 const help = async () => console.log("Usage: tsi <dump|apply>")
 
@@ -18,6 +19,8 @@ const parseArgs = (): (() => Promise<void>) => {
 }
 
 async function main() {
+  await requireBins()
+
   const cmd = parseArgs()
 
   await cmd()

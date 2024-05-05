@@ -38,6 +38,7 @@ describe("plan", () => {
 
   it("updates files when state is different", async () => {
     const state = {
+      ".git/HEAD": {},
       a: { json: true },
     }
     const desiredState = {
@@ -77,8 +78,11 @@ describe("plan", () => {
       complex: true,
     }
     const ops = await plan(
-      {},
       {
+        ".git/HEAD": {},
+      },
+      {
+        ".git/HEAD": {},
         _: { json: configData },
       },
     )

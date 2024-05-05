@@ -1,7 +1,7 @@
 import { Features, Project } from "~/design"
 
 export const apply =
-  ({ file, repo }: Features): Project["apply"] =>
+  ({ file, git }: Features): Project["apply"] =>
   async (ops) => {
     ops.forEach(async (op) => {
       switch (op.type) {
@@ -12,7 +12,10 @@ export const apply =
           await file.delete(op.path)
           break
         case "ignore":
-          await repo.ignoreFile(op.path)
+          await git.ignore(op.path)
+          break
+        case "gitInit":
+          await git.init()
           break
       }
     })
