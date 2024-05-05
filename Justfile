@@ -1,8 +1,9 @@
-test:
-	pnpm jest
+help:
+	just --list --unsorted
 
-test-reset:
-	pnpm jest --clearCache
+@test:
+	pnpm jest --clearCache > /dev/null
+	pnpm jest
 
 format:
 	pnpm prettier --write .

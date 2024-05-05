@@ -6,5 +6,8 @@
     "paths": {
       "~/*": ["./src/*"]
     }
+  },
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
   }
 }

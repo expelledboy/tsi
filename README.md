@@ -30,3 +30,7 @@ tsi start
 - `husky` ~ Git hooks.
 - `lint-staged` ~ Run linters on staged files.
 - `turborepo` ~ Package caching.
+
+## Reference Materials
+
+- https://typestrong.org/ts-node/docs/paths/

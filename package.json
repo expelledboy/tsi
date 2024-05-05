@@ -7,6 +7,7 @@
     "memfs": "^4.9.2",
     "prettier": "^3.2.5",
     "ts-jest": "^29.1.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.4.5"
   }
 }
