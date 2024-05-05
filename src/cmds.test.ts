@@ -7,12 +7,13 @@ import { onlyKeyInObject, toJsonStr } from "./utils"
 
 const root = "/project"
 const configData = { feature: true }
+const newConfigData = { feature: false }
 const configFile = "config.json"
 const configPath = `${root}/${configFile}`
 
 const parsers = {
   config: {
-    use: (path) => path === configPath,
+    use: (path) => path === configFile,
     parse: (content) => JSON.parse(content) as typeof configData,
     serialize: (data) => JSON.stringify(data, null, 2),
   } as Codec<typeof configData>,
@@ -20,7 +21,12 @@ const parsers = {
 
 type Config = mkConfig<typeof parsers>
 
-const transforms: Config["transforms"] = [(state: Files<typeof parsers>) => state]
+const transforms: Config["transforms"] = [
+  (state: Files<typeof parsers>) => ({
+    ...state,
+    [configFile]: { config: newConfigData },
+  }),
+]
 
 const config: Config = { cwd: root, parsers, transforms }
 
@@ -28,9 +34,11 @@ const config: Config = { cwd: root, parsers, transforms }
 
 const log = jest.spyOn(console, "log").mockImplementation(() => void 0)
 
+const writeFile = jest.spyOn(memfs.promises, "writeFile")
+
 jest.mock("fs/promises", () => memfs.promises)
 
-beforeAll(() => {
+beforeEach(() => {
   vol.fromJSON({ [configPath]: toJsonStr(configData) }, root)
 })
 
@@ -44,11 +52,16 @@ test("dump", async () => {
   await dump(config)
 
   expect(log).toHaveBeenCalledWith(
-    toJsonStr({ [configPath]: { [onlyKeyInObject(parsers)]: configData } }),
+    toJsonStr({
+      [configFile]: {
+        [onlyKeyInObject(parsers)]: configData,
+      },
+    }),
   )
 })
 
 test("apply", async () => {
   await apply(config)
-})
 
+  expect(writeFile).toHaveBeenCalledWith(configPath, toJsonStr(newConfigData))
+})

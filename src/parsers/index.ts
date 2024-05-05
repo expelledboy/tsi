@@ -1,3 +1,4 @@
-import { nodePackage } from "./package"
+import { nodePackage } from "./nodePackage"
+import { tsiConfig } from "./tsiConfig"
 
-export const parsers = { nodePackage }
+export const parsers = { nodePackage, tsiConfig }

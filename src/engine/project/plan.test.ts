@@ -24,7 +24,7 @@ describe("plan", () => {
       a: { json: true },
     }
     const ops = await plan(state, desiredState)
-    expect(ops).toContainEqual({ type: "write", path: "a", content: "true" })
+    expect(ops).toContainEqual({ type: "write", path: "/project/a", content: "true" })
   })
 
   it("removes files when no longer present", async () => {
@@ -33,7 +33,7 @@ describe("plan", () => {
     }
     const desiredState = {}
     const ops = await plan(state, desiredState)
-    expect(ops).toContainEqual({ type: "remove", path: "a" })
+    expect(ops).toContainEqual({ type: "remove", path: "/project/a" })
   })
 
   it("updates files when state is different", async () => {
@@ -44,7 +44,7 @@ describe("plan", () => {
       a: { json: false },
     }
     const ops = await plan(state, desiredState)
-    expect(ops).toContainEqual({ type: "write", path: "a", content: "false" })
+    expect(ops).toContainEqual({ type: "write", path: "/project/a", content: "false" })
 
     const nop = await plan(state, state)
     expect(nop).toEqual([])
@@ -59,8 +59,8 @@ describe("plan", () => {
       b: { json: true },
     }
     const ops = await plan(state, desiredState)
-    expect(ops).toContainEqual({ type: "ignore", path: "a" })
-    expect(ops).toContainEqual({ type: "ignore", path: "b" })
+    expect(ops).toContainEqual({ type: "ignore", path: "/project/a" })
+    expect(ops).toContainEqual({ type: "ignore", path: "/project/b" })
   })
 
   it("errors when multiple codecs claim a file", async () => {

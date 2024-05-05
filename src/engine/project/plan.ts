@@ -2,19 +2,21 @@ import { Config, Parser, Project, Schema } from "~/design"
 import { onlyKeyInObject } from "~/utils"
 
 export const plan =
-  ({ parsers }: Config): Project["plan"] =>
+  ({ cwd, parsers }: Config): Project["plan"] =>
   async (state, desiredState) => {
+    const fullPath = (path: string) => `${cwd}/${path}`
+
     const create = Object.entries(desiredState)
       .filter(([path]) => state[path] === undefined)
       .map(([path, schema]) => ({
         type: "write" as const,
-        path,
+        path: fullPath(path),
         content: serialize(schema, parsers),
       }))
 
     const remove = Object.entries(state)
       .filter(([path]) => desiredState[path] === undefined)
-      .map(([path]) => ({ type: "remove" as const, path }))
+      .map(([path]) => ({ type: "remove" as const, path: fullPath(path) }))
 
     const update = Object.entries(desiredState)
       .filter(([path, content]) => {
@@ -23,7 +25,7 @@ export const plan =
       })
       .map(([path, schema]) => ({
         type: "write" as const,
-        path,
+        path: fullPath(path),
         content: serialize(schema, parsers),
       }))
 

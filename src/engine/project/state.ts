@@ -8,16 +8,16 @@ export const loadState =
 
     return Promise.all(
       files.map(async (path) => ({
-        [path]: await parse(file, parsers, path),
+        [path]: await parse(file, parsers, path, cwd),
       })),
     ).then((states) => Object.assign({}, ...states))
   }
 
 export const reloadFile =
   ({ file }: Features) =>
-  ({ parsers }: Config): Project["reloadFile"] =>
+  ({ cwd, parsers }: Config): Project["reloadFile"] =>
   async (path, state) => {
-    const parsed = await parse(file, parsers, path)
+    const parsed = await parse(file, parsers, path, cwd)
 
     return {
       ...state,
@@ -25,14 +25,19 @@ export const reloadFile =
     }
   }
 
-const parse = async (file: Features["file"], parsers: Parser, path: string) => {
+const parse = async (
+  file: Features["file"],
+  parsers: Parser,
+  path: string,
+  cwd: string,
+) => {
   const codecs = useParser(parsers)(path)
 
   if (Object.keys(codecs).length === 0) {
     return {} as Schema
   }
 
-  const content = await file.read(path)
+  const content = await file.read(`${cwd}/${path}`)
 
   return Object.entries(codecs).reduce(
     async (acc, [name, codec]) => ({
