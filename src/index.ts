@@ -1,4 +1,4 @@
-import { dump, apply } from "./cmds"
+import { dump, apply, dryRun } from "./cmds"
 import { requireBins } from "./ioc"
 
 const help = async () => console.log("Usage: tsi <dump|apply>")
@@ -9,6 +9,8 @@ const parseArgs = (): (() => Promise<void>) => {
   switch (process.argv[2]) {
     case "dump":
       return dump
+    case "dry-run":
+      return dryRun
     case "apply":
       return apply
     case "help":

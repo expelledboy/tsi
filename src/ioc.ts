@@ -1,6 +1,6 @@
 // const util = require('node:util');
 import fs from "fs/promises"
-import { Features } from "./design"
+import { Environment } from "./design"
 import { promisify } from "node:util"
 import { exec } from "child_process"
 
@@ -45,7 +45,7 @@ const dirExists = async (path: string) =>
     .then(() => true)
     .catch(() => false)
 
-export const features: Features = {
+export const features: Environment = {
   file: {
     listAll: listAllFiles,
     read: async (path: string) => fs.readFile(path, "utf-8"),

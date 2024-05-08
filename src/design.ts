@@ -1,10 +1,12 @@
-// The constraints placed on the design of the project.
-export type Engine<T extends Config<Parser> = Config<Parser>> = (
-  provide: Features,
-) => (config: T) => Project<T["parsers"]>
+import { Config, CoreConfig } from "./config"
 
-// Features required to effect changes.
-export type Features = {
+// The constraints placed on the design of the project.
+export type Engine<T extends Context<Codecs> = Context<Codecs>> = (
+  env: Environment,
+) => (config: T) => Project<T["codecs"]>
+
+// Side effect operations on the environment.
+export type Environment = {
   file: {
     listAll: (path: string) => Promise<string[]>
     read: (path: string) => Promise<string>
@@ -20,45 +22,50 @@ export type Features = {
   }
 }
 
-// Runtime configuration for a project.
-export type Config<T extends Parser = Parser> = {
+// Runtime context for the project.
+export type Context<T extends Codecs = Codecs> = {
   cwd: string
-  parsers: T
-  transforms: Transform<T>[]
+  codecs: T
+  extensions: Extension<T>[]
 }
 
 // Abstracts away file encoding and decoding.
 export type Codec<T extends Object> = {
-  use: (path: string) => boolean
-  parse: (content: string) => T
-  serialize: (data: T) => string
+  decode: (content: string) => T
+  encode: (data: T) => string
+  take: (files: string[]) => boolean
+  is: (data: any) => boolean
 }
 
 // Collection of codecs for different file types.
-export type Parser = {
+export type Codecs = {
   [name: string]: Codec<any>
 }
 
 // State of a single file translated using codecs.
-export type Schema<T extends Parser = Parser> = {
-  [K in keyof T]?: ReturnType<T[K]["parse"]>
+export type Meta<T extends Codecs = Codecs> = {
+  [K in keyof T]?: ReturnType<T[K]["decode"]>
 }
 
 // State of project translated using codecs.
-export type Files<T extends Parser = Parser> = {
-  [filename: string]: Schema<T>
+export type Files<T extends Codecs = Codecs> = {
+  [filename: string]: Meta<T>
 }
 
-// Transform project state using plugins.
-export type Transform<T extends Parser = Parser> = (s: Files<T>) => Files<T>
+// Project extension to transform or plan file changes.
+export type Extension<T extends Codecs = Codecs> = {
+  parse?: (path: string) => (keyof T)[]
+  capture?: (f: Files<T>, cxt: Context) => Partial<Config>
+  transform?: (f: Files<T>, c: CoreConfig, cxt: Context) => Files<T>
+}
 
 // Project API
 // - load current state
 // - reload file, apply state changes
-// - transform state using plugins
+// - transform state
 // - plan file changes
 // - apply file operations
-export type Project<T extends Parser = Parser> = {
+export type Project<T extends Codecs = Codecs> = {
   loadState: () => Promise<Files<T>>
   reloadFile: (path: string, state: Files<T>) => Promise<Files<T>>
   transform: (state: Files<T>) => Files<T>
@@ -66,7 +73,7 @@ export type Project<T extends Parser = Parser> = {
   apply: (ops: Operation[]) => Promise<void>
 }
 
-// Instructions to effect changes on the file system.
+// Limited set of instructions to effect change.
 export type Operation =
   | { type: "write"; path: string; content: string }
   | { type: "remove"; path: string }

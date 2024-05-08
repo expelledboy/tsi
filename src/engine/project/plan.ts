@@ -1,44 +1,52 @@
-import { Config, Operation, Parser, Project, Schema } from "~/design"
-import { onlyKeyInObject } from "~/utils"
+import type { Context, Files, Operation, Codecs, Project, Meta } from "~/design"
+import { onlyKeyInObject, isEqual } from "~/utils"
 
+// Generates list of operations to effect the desired state.
 export const plan =
-  ({ cwd, parsers }: Config): Project["plan"] =>
+  (ctx: Context): Project["plan"] =>
   async (state, desiredState) => {
     const ops: Operation[] = []
 
-    const isGitRepo = state[".git/HEAD"] !== undefined
+    const fileExists = (path: string, files: Files<Codecs> = state) =>
+      files[path] !== undefined
 
-    if (!isGitRepo) {
+    // Initialize git repository if it doesn't exist.
+    if (!fileExists(".git/HEAD")) {
       ops.push({
         type: "gitInit" as const,
       })
     }
 
-    const fullPath = (path: string) => `${cwd}/${path}`
+    const fullPath = (path: string) => `${ctx.cwd}/${path}`
 
     const create = Object.entries(desiredState)
-      .filter(([path]) => state[path] === undefined)
-      .map(([path, schema]) => ({
+      .filter(([path]) => !fileExists(path))
+      .map(([path, meta]) => ({
         type: "write" as const,
         path: fullPath(path),
-        content: serialize(schema, parsers),
+        content: serialize(meta, ctx),
       }))
 
     const remove = Object.entries(state)
-      .filter(([path]) => desiredState[path] === undefined)
-      .map(([path]) => ({ type: "remove" as const, path: fullPath(path) }))
-
-    const update = Object.entries(desiredState)
-      .filter(([path, content]) => {
-        const codec = onlyKeyInObject(content)
-        return state[path] !== undefined && state[path][codec] !== content[codec]
-      })
-      .map(([path, schema]) => ({
-        type: "write" as const,
+      .filter(([path]) => !fileExists(path, desiredState))
+      .map(([path]) => ({
+        type: "remove" as const,
         path: fullPath(path),
-        content: serialize(schema, parsers),
       }))
 
+    const update = Object.entries(desiredState)
+      .filter(([path, meta]) => {
+        if (Object.keys(meta).length === 0) return false
+        const codec = onlyKeyInObject(meta)
+        return fileExists(path) && !isEqual(state[path][codec], meta[codec])
+      })
+      .map(([path, meta]) => ({
+        type: "write" as const,
+        path: fullPath(path),
+        content: serialize(meta, ctx),
+      }))
+
+    // Ignore any files that are created or updated.
     const ignore = [...create, ...update].map(({ path }) => ({
       type: "ignore" as const,
       path,
@@ -49,13 +57,12 @@ export const plan =
     return ops
   }
 
-const serialize: (schema: Schema<Parser>, parsers: Parser) => string = (
-  schema,
-  parsers,
-) => {
-  const codecs = Object.keys(schema).length
-  if (codecs !== 1) throw new Error("multiple codecs specified in file schema")
-  const [name, data] = Object.entries(schema)[0]
-  const codec = parsers[name as keyof Parser]
-  return codec.serialize(data)
+// Serializes the metadata object for a file.
+const serialize = (meta: Meta<Codecs>, ctx: Context) => {
+  try {
+    const codec = onlyKeyInObject(meta)
+    return ctx.codecs[codec].encode(meta[codec])
+  } catch (e) {
+    throw new Error("multiple codecs specified in file meta")
+  }
 }

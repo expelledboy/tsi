@@ -1,60 +1,54 @@
-import { Config, Features, Parser, Project, Schema } from "~/design"
+import type { Context, Environment, Project, Meta } from "~/design"
 
+// Parses all files using the available parsers.
+// Perf: Extensions must explicitly request parser.
 export const loadState =
-  ({ file }: Features) =>
-  ({ cwd, parsers }: Config): Project["loadState"] =>
+  (env: Environment, ctx: Context): Project["loadState"] =>
   async () => {
-    const files = await file.listAll(cwd)
+    const files = await env.file.listAll(ctx.cwd)
 
-    return Promise.all(
+    const fileParts = Promise.all(
       files.map(async (path) => ({
-        [path]: await parse(file, parsers, path, cwd),
+        [path]: await parse(env, ctx, path),
       })),
-    ).then((states) => Object.assign({}, ...states))
+    )
+
+    return fileParts.then((part) => Object.assign({}, ...part))
   }
 
+// Reloads a single file into the state.
 export const reloadFile =
-  ({ file }: Features) =>
-  ({ cwd, parsers }: Config): Project["reloadFile"] =>
-  async (path, state) => {
-    const parsed = await parse(file, parsers, path, cwd)
+  (env: Environment, ctx: Context): Project["reloadFile"] =>
+  async (path, state) => ({
+    ...state,
+    [path]: await parse(env, ctx, path),
+  })
 
-    return {
-      ...state,
-      [path]: parsed,
+const parse = async (env: Environment, ctx: Context, path: string) => {
+  const fileSchema = {} as Meta
+
+  const codecs = ctx.extensions
+    .filter((ext) => !!ext.parse) // has parse method
+    .map((ext) => ext.parse!(path)) // get parsers
+    .flat()
+    .filter((v, i, a) => a.indexOf(v) === i) // unique
+
+  // Don't read file if not needed
+  if (codecs.length === 0) return fileSchema
+
+  codecs.forEach((name) => {
+    if (!ctx.codecs[name]) {
+      throw new Error(`Codec "${name}" not found`)
     }
-  }
+  })
 
-const parse = async (
-  file: Features["file"],
-  parsers: Parser,
-  path: string,
-  cwd: string,
-) => {
-  const codecs = useParser(parsers)(path)
+  const content = await env.file.read(`${ctx.cwd}/${path}`)
 
-  if (Object.keys(codecs).length === 0) {
-    return {} as Schema
-  }
-
-  const content = await file.read(`${cwd}/${path}`)
-
-  return Object.entries(codecs).reduce(
-    async (acc, [name, codec]) => ({
+  return codecs.reduce(
+    (acc, c) => ({
       ...acc,
-      [name]: codec.parse(content),
+      [c]: ctx.codecs[c].decode(content),
     }),
-    {},
-  ) as Schema
-}
-
-const useParser = (parser: Parser) => (path: string) =>
-  Object.entries(parser).reduce(
-    (acc, [name, codec]) => {
-      if (codec.use(path)) {
-        return { ...acc, [name]: codec }
-      }
-      return acc
-    },
-    {} as typeof parser,
+    fileSchema,
   )
+}

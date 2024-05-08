@@ -1,12 +1,12 @@
-import { Engine } from "~/design"
+import type { Engine } from "~/design"
 import * as project from "./project"
 
-export const engine: Engine = (features) => (config) => {
+export const engine: Engine = (feat) => (ctx) => {
   return {
-    loadState: project.loadState(features)(config),
-    reloadFile: project.reloadFile(features)(config),
-    transform: project.transform(config),
-    plan: project.plan(config),
-    apply: project.apply(features),
+    loadState: project.loadState(feat, ctx),
+    reloadFile: project.reloadFile(feat, ctx),
+    transform: project.transform(ctx),
+    plan: project.plan(ctx),
+    apply: project.apply(feat),
   }
 }

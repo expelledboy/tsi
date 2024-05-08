@@ -1,21 +1,20 @@
-import { Parser } from "~/design"
+import type { Codec, Codecs } from "~/design"
 import { plan as mkPlan } from "./plan"
 
-const configuredParsers: Parser = {
-  json: {
-    use: (path: string) => path.endsWith(".json"),
-    parse: (content: string) => JSON.parse(content),
-    serialize: (data: any) => JSON.stringify(data),
-  },
+const jsonCodec: Codec<any> = {
+  decode: (content: string) => JSON.parse(content),
+  encode: (data: any) => JSON.stringify(data),
+  take: (files: string[]) => files.some((path) => path.endsWith(".json")),
+  is: (data: any) => typeof data === "object",
 }
 
-const config = {
+const context = {
   cwd: "/project",
-  parsers: configuredParsers,
-  transforms: [],
+  codecs: { json: jsonCodec },
+  extensions: [],
 }
 
-const plan = mkPlan(config)
+const plan = mkPlan(context)
 
 describe("plan", () => {
   it("creates files when they don't exist", async () => {
@@ -42,6 +41,7 @@ describe("plan", () => {
       a: { json: true },
     }
     const desiredState = {
+      ".git/HEAD": {},
       a: { json: false },
     }
     const ops = await plan(state, desiredState)
@@ -69,7 +69,7 @@ describe("plan", () => {
       a: { json: true, yaml: true },
     }
     await expect(plan({}, state)).rejects.toThrow(
-      "multiple codecs specified in file schema",
+      "multiple codecs specified in file meta",
     )
   })
 
@@ -87,7 +87,7 @@ describe("plan", () => {
       },
     )
     expect(ops[0]).toMatchObject({
-      content: configuredParsers.json.serialize(configData),
+      content: jsonCodec.encode(configData),
     })
   })
 })
