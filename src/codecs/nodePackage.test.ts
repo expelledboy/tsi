@@ -9,7 +9,7 @@ describe("nodePackage codec", () => {
     const packageJson = nodePackage.decode(tsiPackageStr)
 
     expect(packageJson).toBeDefined()
-    expect(packageJson.dependencies).toBeDefined()
+    expect(packageJson.devDependencies).toBeDefined()
 
     const encoded = nodePackage.encode(packageJson)
     expect(encoded).toBe(tsiPackageStr)

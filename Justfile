@@ -8,8 +8,11 @@ help:
 format:
 	pnpm prettier --write .
 
-build:
+type-check:
 	pnpm tsc --noEmit
+
+build:
+	pnpm tsc
 
 cli cmd="dump":
 	npx ts-node src/index.ts {{cmd}}

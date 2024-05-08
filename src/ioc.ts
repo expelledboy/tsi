@@ -1,5 +1,5 @@
-// const util = require('node:util');
 import fs from "fs/promises"
+import { resolve } from "path"
 import { Environment } from "./design"
 import { promisify } from "node:util"
 import { exec } from "child_process"
@@ -25,19 +25,21 @@ export const requireBins = async () => {
 const gitignore = (path: string) =>
   [".git/objects", "node_modules/"].some((name) => path.includes(name))
 
+async function getFiles(dir: string): Promise<string[]> {
+  const stats = await fs.readdir(dir, { withFileTypes: true })
+  const files = await Promise.all(
+    stats.map((stat) => {
+      const res = resolve(dir, stat.name)
+      return stat.isDirectory() ? getFiles(res) : res
+    }),
+  )
+  return Array.prototype.concat(...files)
+}
+
 const listAllFiles = async (path: string) =>
-  fs.readdir
-    .bind(fs)(path, {
-      recursive: true,
-      withFileTypes: true,
-    })
-    .then((stats) =>
-      stats
-        .filter((dirent) => dirent.isFile())
-        .map(({ path, name }) => `${path}/${name}`)
-        .filter((file) => !gitignore(file))
-        .map((file) => file.replace(path + "/", "")),
-    )
+  getFiles(path).then((files) =>
+    files.filter((file) => !gitignore(file)).map((file) => file.replace(path + "/", "")),
+  )
 
 const dirExists = async (path: string) =>
   fs
