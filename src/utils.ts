@@ -12,14 +12,16 @@ export const onlyKeyInObject = <T extends HashMap>(obj: T) => {
   return keys[0] as keyof T
 }
 
-export const cleanObject = (obj: HashMap) => {
+export const cleanObject = <T extends HashMap>(o: T) => {
+  const obj = { ...o }
+
   for (const key in obj) {
     if (obj[key] === undefined) {
       delete obj[key]
     }
   }
 
-  return obj
+  return Object.keys(obj).length === 0 ? undefined : obj
 }
 
 export const isEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b)
@@ -47,18 +49,28 @@ export type RequiredRecursively<T> = T extends (...args: infer A) => infer R
       : never
     : T
 
-export const deepMerge = <T extends HashMap>(target: T, source: Partial<T>) => {
-  const obj = { ...target }
+// https://stackoverflow.com/a/48218209
+export const mergeDeep = (...objects: any[]) => {
+  const isObject = (obj: any) => obj && typeof obj === "object" && !Array.isArray(obj)
 
-  for (const key in target) {
-    if (typeof target[key] === "object") {
-      if (!!source && key in source) {
-        obj[key] = deepMerge(target[key], source[key]!)
+  return objects.reduce((prev, obj) => {
+    if (obj === undefined) return prev
+
+    Object.keys(obj).forEach((key) => {
+      const pVal = prev[key]
+      const oVal = obj[key]
+
+      if (Array.isArray(pVal) && Array.isArray(oVal)) {
+        prev[key] = pVal.concat(...oVal)
+      } else if (isObject(pVal) && isObject(oVal)) {
+        prev[key] = mergeDeep(pVal, oVal)
+      } else {
+        prev[key] = oVal
       }
-    }
-  }
+    })
 
-  return obj as T
+    return prev
+  }, {})
 }
 
 export const deepRemoveEqual = <T extends HashMap>(

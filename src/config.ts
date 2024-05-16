@@ -1,5 +1,5 @@
 import { Context } from "./design"
-import { Expand, RequiredRecursively, deepMerge, deepRemoveEqual } from "./utils"
+import { Expand, RequiredRecursively, mergeDeep, deepRemoveEqual } from "./utils"
 
 type Feature = Expand<keyof Features>
 
@@ -21,7 +21,7 @@ type Deps = {
 }
 
 type Package = {
-  name: string
+  name?: string
   deps?: {
     dist?: Deps
     dev?: Deps
@@ -61,21 +61,20 @@ export const enrich = (cfg: Config, ctx: Context): CoreConfig => {
 
   const pkg: Package = {
     name: dirname,
-    deps: {},
   }
 
   const packages = (): Packages =>
     "package" in cfg
       ? {
-          package: deepMerge(pkg, cfg.package),
+          package: mergeDeep(pkg, cfg.package),
         }
       : {
-          workspace: deepMerge(pkg, cfg.workspace),
+          workspace: mergeDeep(pkg, cfg.workspace),
           packages: cfg.packages || [],
         }
 
   return {
-    ...deepMerge(defaultConfig, cfg),
+    ...mergeDeep(defaultConfig, cfg),
     ...packages(),
   }
 }

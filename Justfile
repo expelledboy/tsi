@@ -12,7 +12,7 @@ type-check:
 	pnpm tsc --noEmit
 
 build:
-	pnpm tsc
+	pnpm tsc --noEmit
 
 cli cmd="dump":
 	npx ts-node src/index.ts {{cmd}}

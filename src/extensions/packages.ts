@@ -1,26 +1,30 @@
 import type { Extension } from "~/design"
 import { codecs } from "~/codecs"
+import { cleanObject } from "~/utils"
 
 export const packagesExtension: Extension<typeof codecs> = {
   parse: (path) => (path.match(/package.json$/) ? ["nodePackage"] : []),
 
   capture: (files, cxt) => {
     const filenames = Object.keys(files)
+    const pkgFiles = filenames.filter((path) => path.endsWith("package.json"))
 
-    if (!filenames.some((path) => path.endsWith("package.json"))) {
+    if (pkgFiles.length === 0) {
       return {}
     }
 
     const rootConfig = files["package.json"]?.nodePackage
 
-    // default name to the directory name
-    const name = rootConfig?.name || cxt.cwd.split("/").pop()!
+    const pkg = cleanObject({
+      name: rootConfig?.name,
+      deps: cleanObject({
+        dist: rootConfig!.dependencies,
+        dev: rootConfig!.devDependencies,
+      }),
+    })
 
-    // single package
-    if (filenames.filter((path) => path.endsWith("package.json")).length === 1) {
-      return {
-        package: { name },
-      }
+    if (pkgFiles.length === 1) {
+      return pkg === undefined ? {} : { package: pkg }
     }
 
     // has multiple packages, making this a monorepo
@@ -34,7 +38,7 @@ export const packagesExtension: Extension<typeof codecs> = {
       })
 
     return {
-      workspace: { name },
+      workspace: pkg,
       packages,
     }
   },
@@ -50,9 +54,11 @@ export const packagesExtension: Extension<typeof codecs> = {
       }
 
       diff["package.json"] = {
-        nodePackage: {
+        nodePackage: cleanObject({
           name: config.package.name,
-        },
+          dependencies: config.package.deps?.dist,
+          devDependencies: config.package.deps?.dev,
+        }),
       }
 
       return diff

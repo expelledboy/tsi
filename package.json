@@ -1,5 +1,5 @@
 {
-  "private": true,
+  "name": "tsi",
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.12.7",
@@ -8,6 +8,7 @@
     "prettier": "^3.2.5",
     "ts-jest": "^29.1.2",
     "tsconfig-paths": "^4.2.0",
+    "type-fest": "^4.18.2",
     "typescript": "^5.4.5"
   }
 }
