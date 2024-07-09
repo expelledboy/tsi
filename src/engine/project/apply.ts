@@ -1,18 +1,18 @@
-import type { Environment, Project } from "~/design"
+import type { Effects, Project } from "~/design"
 
 export const apply =
-  (env: Environment): Project["apply"] =>
+  (exec: Effects): Project["apply"] =>
   async (ops) => {
     ops.forEach(async (op) => {
       switch (op.type) {
         case "write":
-          return env.file.write(op.path, op.content)
+          return exec.file.write(op.path, op.content)
         case "remove":
-          return await env.file.delete(op.path)
+          return await exec.file.delete(op.path)
         case "ignore":
-          return await env.git.ignore(op.path)
+          return await exec.git.ignore(op.path)
         case "gitInit":
-          return await env.git.init()
+          return await exec.git.init()
       }
     })
   }

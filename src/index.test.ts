@@ -1,7 +1,7 @@
 import { fs as memfs, vol } from "memfs"
-import { dump, apply } from "./cmds"
-import { Codec, Files, Context as mkConfig } from "./design"
+import { Codec, Files, Context as makeContext } from "./design"
 import { onlyKeyInObject, toJsonStr } from "./utils"
+import { main } from "./index"
 
 // context
 
@@ -23,9 +23,9 @@ const codecs = {
   [configCodecKey]: configCodec,
 }
 
-type Config = mkConfig<typeof codecs>
+type Context = makeContext<typeof codecs>
 
-const plugins: Config["extensions"] = [
+const plugins: Context["extensions"] = [
   {
     parse: (path: string) => (path.endsWith(configFile) ? [configCodecKey] : []),
     capture: (files: Files<typeof codecs>) => ({}),
@@ -35,16 +35,18 @@ const plugins: Config["extensions"] = [
   },
 ]
 
-const config: Config = {
+const context: Context = {
   cwd: root,
   codecs: codecs,
   extensions: plugins,
+  command: "help",
+  options: { git: true, install: true },
 }
 
 // setup
 
 const log = jest.spyOn(console, "log").mockImplementation(() => void 0)
-
+const cwd = jest.spyOn(process, "cwd").mockReturnValue(root)
 const writeFile = jest.spyOn(memfs.promises, "writeFile")
 
 jest.mock("fs/promises", () => memfs.promises)
@@ -60,19 +62,19 @@ afterEach(() => {
 // tests
 
 test("dump", async () => {
-  await dump(config)
+  const cxt = { ...context, command: "dump" }
 
-  expect(log).toHaveBeenCalledWith(
+  await main(cxt as any)
+
+  expect(log).toHaveBeenNthCalledWith(
+    1,
     toJsonStr({
-      [configFile]: {
-        [onlyKeyInObject(codecs)]: configData,
+      context: cxt,
+      files: {
+        [configFile]: {
+          [onlyKeyInObject(codecs)]: configData,
+        },
       },
     }),
   )
-})
-
-test("apply", async () => {
-  await apply(config)
-
-  expect(writeFile).toHaveBeenCalledWith(configPath, toJsonStr(newConfigData))
 })

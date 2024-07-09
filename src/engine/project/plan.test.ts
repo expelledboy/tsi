@@ -12,6 +12,8 @@ const context = {
   cwd: "/project",
   codecs: { json: jsonCodec },
   extensions: [],
+  command: "test",
+  options: { git: true, install: true },
 }
 
 const plan = mkPlan(context)

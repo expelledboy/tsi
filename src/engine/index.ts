@@ -1,12 +1,16 @@
-import type { Engine } from "~/design"
+import type { Context, Engine } from "~/design"
 import * as project from "./project"
+import { codecs } from "~/codecs"
 
-export const engine: Engine = (feat) => (ctx) => {
+export const engine: Engine<typeof codecs> = (effects) => (context) => {
+  const ctx = context as unknown as Context
+
   return {
-    loadState: project.loadState(feat, ctx),
-    reloadFile: project.reloadFile(feat, ctx),
+    context,
+    loadState: project.loadState(effects, ctx),
+    reloadFile: project.reloadFile(effects, ctx),
     transform: project.transform(ctx),
     plan: project.plan(ctx),
-    apply: project.apply(feat),
+    apply: project.apply(effects),
   }
 }

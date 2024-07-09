@@ -1,15 +1,15 @@
-import type { Context, Environment, Project, Meta } from "~/design"
+import type { Context, Effects, Project, Meta } from "~/design"
 
 // Parses all files using the available parsers.
 // Perf: Extensions must explicitly request parser.
 export const loadState =
-  (env: Environment, ctx: Context): Project["loadState"] =>
+  (exec: Effects, ctx: Context): Project["loadState"] =>
   async () => {
-    const files = await env.file.listAll(ctx.cwd)
+    const files = await exec.file.listAll(ctx.cwd)
 
     const fileParts = Promise.all(
       files.map(async (path) => ({
-        [path]: await parse(env, ctx, path),
+        [path]: await parse(exec, ctx, path),
       })),
     )
 
@@ -18,13 +18,13 @@ export const loadState =
 
 // Reloads a single file into the state.
 export const reloadFile =
-  (env: Environment, ctx: Context): Project["reloadFile"] =>
+  (env: Effects, ctx: Context): Project["reloadFile"] =>
   async (path, state) => ({
     ...state,
     [path]: await parse(env, ctx, path),
   })
 
-const parse = async (env: Environment, ctx: Context, path: string) => {
+const parse = async (exec: Effects, ctx: Context, path: string) => {
   const fileSchema = {} as Meta
 
   const codecs = ctx.extensions
@@ -42,7 +42,7 @@ const parse = async (env: Environment, ctx: Context, path: string) => {
     }
   })
 
-  const content = await env.file.read(`${ctx.cwd}/${path}`)
+  const content = await exec.file.read(`${ctx.cwd}/${path}`)
 
   return codecs.reduce(
     (acc, c) => ({

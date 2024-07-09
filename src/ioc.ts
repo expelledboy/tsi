@@ -1,6 +1,6 @@
 import fs from "fs/promises"
 import { resolve } from "path"
-import { Environment } from "./design"
+import { Effects } from "./design"
 import { promisify } from "node:util"
 import { exec } from "child_process"
 
@@ -41,21 +41,22 @@ const listAllFiles = async (path: string) =>
     files.filter((file) => !gitignore(file)).map((file) => file.replace(path + "/", "")),
   )
 
-const dirExists = async (path: string) =>
+const exists = async (path: string) =>
   fs
     .stat(path)
     .then(() => true)
     .catch(() => false)
 
-export const features: Environment = {
+export const environment: Effects = {
   file: {
     listAll: listAllFiles,
     read: async (path: string) => fs.readFile(path, "utf-8"),
     write: (path: string, content: string) => fs.writeFile(path, content),
     delete: async (path: string) => fs.unlink(path),
+    exists,
   },
   dir: {
-    exists: dirExists,
+    exists,
   },
   git: {
     init: async () => {

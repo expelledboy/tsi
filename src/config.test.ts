@@ -6,6 +6,8 @@ describe("enrich", () => {
       cwd: "/path/to/project",
       codecs: {},
       extensions: [],
+      command: "test",
+      options: { git: true, install: true },
     }
     expect(
       enrich(
